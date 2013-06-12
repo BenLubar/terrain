@@ -8,13 +8,88 @@ import (
 	"math/big"
 	"math/rand"
 	"os"
+	"time"
 
 	"github.com/BenLubar/terrain/world"
 )
 
+var one = big.NewInt(1)
+
 type World struct {
 	*world.World
 	Diggers []*Digger
+}
+
+func (w *World) Simulate(r *rand.Rand) {
+	var scratch big.Int
+	switch r.Intn(3) {
+	case 0, 1:
+		if len(w.Diggers) != 0 {
+			d := w.Diggers[r.Intn(len(w.Diggers))]
+			if !w.Get(&d.X, &d.Y, scratch.Sub(&d.Z, one)) {
+				// Digger fell down a tunnel
+				d.Z.Set(&scratch)
+				return
+			}
+			switch r.Intn(17) {
+			case 0:
+				d.X.Add(&d.X, one)
+			case 1:
+				d.X.Add(&d.X, one)
+				d.Y.Add(&d.Y, one)
+			case 2:
+				d.Y.Add(&d.Y, one)
+			case 3:
+				d.X.Sub(&d.X, one)
+				d.Y.Add(&d.Y, one)
+			case 4:
+				d.X.Sub(&d.X, one)
+			case 5:
+				d.X.Sub(&d.X, one)
+				d.Y.Sub(&d.Y, one)
+			case 6:
+				d.Y.Sub(&d.Y, one)
+			case 7:
+				d.X.Add(&d.X, one)
+				d.Y.Sub(&d.Y, one)
+			case 8:
+				d.X.Add(&d.X, one)
+				d.Z.Sub(&d.Z, one)
+			case 9:
+				d.X.Add(&d.X, one)
+				d.Y.Add(&d.Y, one)
+				d.Z.Sub(&d.Z, one)
+			case 10:
+				d.Y.Add(&d.Y, one)
+				d.Z.Sub(&d.Z, one)
+			case 11:
+				d.X.Sub(&d.X, one)
+				d.Y.Add(&d.Y, one)
+				d.Z.Sub(&d.Z, one)
+			case 12:
+				d.X.Sub(&d.X, one)
+				d.Z.Sub(&d.Z, one)
+			case 13:
+				d.X.Sub(&d.X, one)
+				d.Y.Sub(&d.Y, one)
+				d.Z.Sub(&d.Z, one)
+			case 14:
+				d.Y.Sub(&d.Y, one)
+				d.Z.Sub(&d.Z, one)
+			case 15:
+				d.X.Add(&d.X, one)
+				d.Y.Sub(&d.Y, one)
+				d.Z.Sub(&d.Z, one)
+			case 16:
+				d.Z.Sub(&d.Z, one)
+			}
+			w.Unset(&d.X, &d.Y, &d.Z)
+			return
+		}
+		fallthrough
+	case 2:
+		w.Diggers = append(w.Diggers, &Digger{})
+	}
 }
 
 type Digger struct {
@@ -27,6 +102,7 @@ func main() {
 		out        = flag.String("o", "world.gz", "save the world to this location at the end of execution")
 		iterations = flag.Uint64("n", 10000, "number of simulation iterations")
 		seed       = flag.Int64("s", 0, "random seed")
+		loop       = flag.Duration("l", 0, "if non-zero, loop forever (ignoring -n) with this delay (eg 1ms) between iterations")
 	)
 
 	flag.Parse()
@@ -56,78 +132,15 @@ func main() {
 		}
 	}
 
-	one := big.NewInt(1)
-	var scratch big.Int
 	r := rand.New(rand.NewSource(*seed))
-	for i := uint64(0); i < *iterations; i++ {
-		switch r.Intn(3) {
-		case 0, 1:
-			if len(w.Diggers) != 0 {
-				d := w.Diggers[r.Intn(len(w.Diggers))]
-				if !w.Get(&d.X, &d.Y, scratch.Sub(&d.Z, one)) {
-					// Digger fell down a tunnel
-					d.Z.Set(&scratch)
-					continue
-				}
-				switch r.Intn(17) {
-				case 0:
-					d.X.Add(&d.X, one)
-				case 1:
-					d.X.Add(&d.X, one)
-					d.Y.Add(&d.Y, one)
-				case 2:
-					d.Y.Add(&d.Y, one)
-				case 3:
-					d.X.Sub(&d.X, one)
-					d.Y.Add(&d.Y, one)
-				case 4:
-					d.X.Sub(&d.X, one)
-				case 5:
-					d.X.Sub(&d.X, one)
-					d.Y.Sub(&d.Y, one)
-				case 6:
-					d.Y.Sub(&d.Y, one)
-				case 7:
-					d.X.Add(&d.X, one)
-					d.Y.Sub(&d.Y, one)
-				case 8:
-					d.X.Add(&d.X, one)
-					d.Z.Sub(&d.Z, one)
-				case 9:
-					d.X.Add(&d.X, one)
-					d.Y.Add(&d.Y, one)
-					d.Z.Sub(&d.Z, one)
-				case 10:
-					d.Y.Add(&d.Y, one)
-					d.Z.Sub(&d.Z, one)
-				case 11:
-					d.X.Sub(&d.X, one)
-					d.Y.Add(&d.Y, one)
-					d.Z.Sub(&d.Z, one)
-				case 12:
-					d.X.Sub(&d.X, one)
-					d.Z.Sub(&d.Z, one)
-				case 13:
-					d.X.Sub(&d.X, one)
-					d.Y.Sub(&d.Y, one)
-					d.Z.Sub(&d.Z, one)
-				case 14:
-					d.Y.Sub(&d.Y, one)
-					d.Z.Sub(&d.Z, one)
-				case 15:
-					d.X.Add(&d.X, one)
-					d.Y.Sub(&d.Y, one)
-					d.Z.Sub(&d.Z, one)
-				case 16:
-					d.Z.Sub(&d.Z, one)
-				}
-				w.Unset(&d.X, &d.Y, &d.Z)
-				continue
-			}
-			fallthrough
-		case 2:
-			w.Diggers = append(w.Diggers, &Digger{})
+	if *loop != 0 {
+		for {
+			w.Simulate(r)
+			time.Sleep(*loop)
 		}
+	}
+	for i := uint64(0); i < *iterations; i++ {
+		w.Simulate(r)
 	}
 
 	f, err := os.Create(*out)

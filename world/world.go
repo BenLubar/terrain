@@ -11,6 +11,8 @@ type World struct {
 	Chunks map[string]*chunk.Chunk
 }
 
+// Constructs a new, empty world. All locations with z < 0 are solid. All other
+// locations are non-solid.
 func New() *World {
 	w := &World{}
 	w.Chunks = make(map[string]*chunk.Chunk)
