@@ -36,6 +36,24 @@ func (w *World) Get(x, y, z *big.Int) bool {
 	return z.Cmp(zero) < 0
 }
 
+func (w *World) Set(x, y, z *big.Int) {
+	var cx, cy, cz big.Int
+	lx := split(x, &cx)
+	ly := split(y, &cy)
+	lz := split(z, &cz)
+
+	w.Chunk(&cx, &cy, &cz).Set(lx, ly, lz)
+}
+
+func (w *World) Unset(x, y, z *big.Int) {
+	var cx, cy, cz big.Int
+	lx := split(x, &cx)
+	ly := split(y, &cy)
+	lz := split(z, &cz)
+
+	w.Chunk(&cx, &cy, &cz).Unset(lx, ly, lz)
+}
+
 var zero = big.NewInt(0)
 var allSolid [64][64]uint64
 
