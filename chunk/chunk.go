@@ -2,13 +2,14 @@ package chunk
 
 import "math/big"
 
+// Chunk is a 64x64x64 "chunk" of a world.
 type Chunk struct {
 	X, Y, Z big.Int
 	Solid   [64][64]uint64
 }
 
-// Constructs a new *Chunk that contains the global point (64x, 64y, 64z). The returned *Chunk
-// is completely non-solid.
+// New constructs a new *Chunk that contains the global points (64x, 64y, 64z)
+// and (64x+63, 64y+63, 64z+63). The returned *Chunk is completely non-solid.
 func New(x, y, z *big.Int) *Chunk {
 	const shift = 6 // 1<<6 == 64
 
@@ -21,24 +22,28 @@ func New(x, y, z *big.Int) *Chunk {
 	return c
 }
 
-// Returns true if the local point (x, y, z) is solid. Coordinates are in the range [0,64).
-// Getting the solidity of a point outside the legal range has undefined results.
+// Get returns true if the local point (x, y, z) is solid. Coordinates are in
+// the range [0,64). Getting the solidity of a point outside the legal range
+// has undefined results.
 func (c *Chunk) Get(x, y, z uint8) bool {
 	return c.Solid[x][y]>>z&1 != 0
 }
 
-// Makes the local point (x, y, z) solid. Coordinates are in the range [0,64).
-// Setting the solidity of a point outside the legal range has undefined results.
+// Set makes the local point (x, y, z) solid. Coordinates are in the range
+// [0,64). Setting the solidity of a point outside the legal range has
+// undefined results.
 func (c *Chunk) Set(x, y, z uint8) {
 	c.Solid[x][y] |= 1 << z
 }
 
-// Makes the local point (x, y, z) non-solid. Coordinates are in the range [0,64).
-// Unsetting the solidity of a point outside the legal range has undefined results.
+// Unset makes the local point (x, y, z) non-solid. Coordinates are in the
+// range [0,64). Unsetting the solidity of a point outside the legal range
+// has undefined results.
 func (c *Chunk) Unset(x, y, z uint8) {
 	c.Solid[x][y] &^= 1 << z
 }
 
+// MarshalJSON implements json.Marshaler.
 func (c *Chunk) MarshalJSON() ([]byte, error) {
 	x, err := c.X.MarshalJSON()
 	if err != nil {
@@ -91,7 +96,8 @@ func (c *Chunk) MarshalJSON() ([]byte, error) {
 	return b, nil
 }
 
-func (c *Chunk) Equals(o *Chunk) bool {
+// Equal returns true if two chunks are exactly equal.
+func (c *Chunk) Equal(o *Chunk) bool {
 	return c.X.Cmp(&o.X) == 0 &&
 		c.Y.Cmp(&o.Y) == 0 &&
 		c.Z.Cmp(&o.Z) == 0 &&
@@ -99,6 +105,7 @@ func (c *Chunk) Equals(o *Chunk) bool {
 
 }
 
+// String returns a string representation of this Chunk's position.
 func (c *Chunk) String() string {
 	return "Chunk[" + c.X.String() + "," + c.Y.String() + "," + c.Z.String() + "]"
 }
