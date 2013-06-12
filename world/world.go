@@ -3,19 +3,48 @@ package world
 import (
 	"math/big"
 
+	"github.com/petar/GoLLRB/llrb"
+
 	"github.com/BenLubar/terrain/chunk"
 )
 
 type World struct {
-	// Exported for encoders. Do not access directly.
-	Chunks map[string]*chunk.Chunk
+	chunks *llrb.LLRB
+}
+
+type item struct {
+	X, Y, Z *big.Int
+	*chunk.Chunk
+}
+
+func (i *item) Less(than llrb.Item) bool {
+	o := than.(*item)
+	switch i.X.Cmp(o.X) {
+	case -1:
+		return true
+	case 1:
+		return false
+	}
+	switch i.Y.Cmp(o.Y) {
+	case -1:
+		return true
+	case 1:
+		return false
+	}
+	switch i.Z.Cmp(o.Z) {
+	case -1:
+		return true
+	case 1:
+		return false
+	}
+	return false
 }
 
 // Constructs a new, empty world. All locations with z < 0 are solid. All other
 // locations are non-solid.
 func New() *World {
 	w := &World{}
-	w.Chunks = make(map[string]*chunk.Chunk)
+	w.chunks = llrb.New()
 	return w
 }
 
@@ -25,14 +54,17 @@ func split(gc *big.Int, cc *big.Int) uint8 {
 }
 
 func (w *World) Get(x, y, z *big.Int) bool {
-	var cx, cy, cz big.Int
-	lx := split(x, &cx)
-	ly := split(y, &cy)
-	lz := split(z, &cz)
-	key := cx.String() + "," + cy.String() + "," + cz.String()
-	c, ok := w.Chunks[key]
-	if ok {
-		return c.Get(lx, ly, lz)
+	i := &item{
+		X: &big.Int{},
+		Y: &big.Int{},
+		Z: &big.Int{},
+	}
+	lx := split(x, i.X)
+	ly := split(y, i.Y)
+	lz := split(z, i.Z)
+	i, _ = w.chunks.Get(i).(*item)
+	if i != nil {
+		return i.Get(lx, ly, lz)
 	}
 
 	return z.Cmp(zero) < 0
@@ -69,17 +101,27 @@ func init() {
 }
 
 func (w *World) Chunk(x, y, z *big.Int) *chunk.Chunk {
-	key := x.String() + "," + y.String() + "," + z.String()
-	c, ok := w.Chunks[key]
-	if ok {
-		return c
+	i := &item{
+		X: x,
+		Y: y,
+		Z: z,
+	}
+	i, _ = w.chunks.Get(i).(*item)
+	if i != nil {
+		return i.Chunk
 	}
 
-	c = chunk.New(x, y, z)
+	i = &item{
+		X: (&big.Int{}).Set(x),
+		Y: (&big.Int{}).Set(y),
+		Z: (&big.Int{}).Set(z),
+
+		Chunk: chunk.New(x, y, z),
+	}
 	if z.Cmp(zero) < 0 {
-		c.Solid = allSolid
+		i.Solid = allSolid
 	}
 
-	w.Chunks[key] = c
-	return c
+	w.chunks.InsertNoReplace(i)
+	return i.Chunk
 }

@@ -55,8 +55,8 @@ func TestChunk(t *testing.T) {
 		t.Errorf("Chunk(0, 0, %v) returned %v", verylow, c3)
 	}
 
-	if len(w.Chunks) != 3 {
-		t.Errorf("Expected 3 chunks, but World has %d", len(w.Chunks))
+	if l := w.chunks.Len(); l != 3 {
+		t.Errorf("Expected 3 chunks, but World has %d", l)
 	}
 }
 
