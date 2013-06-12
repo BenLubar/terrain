@@ -68,22 +68,22 @@ func TestGet(t *testing.T) {
 		x, y, z  int64
 		expected bool
 	}{
-		{0, 0, 0, true},
+		{0, 0, 0, false},
 		{0, 0, 1, true},
-		{0, 1, 0, true},
+		{0, 1, 0, false},
 		{0, 1, 1, false},
-		{1, 0, 0, true},
+		{1, 0, 0, false},
 		{1, 0, 1, false},
-		{1, 1, 0, true},
+		{1, 1, 0, false},
 		{1, 1, 1, false},
 
-		{64, 0, 0, true},
+		{64, 0, 0, false},
 		{64, 0, 1, false},
-		{64, 1, 0, true},
+		{64, 1, 0, false},
 		{64, 1, 1, false},
-		{65, 0, 0, true},
+		{65, 0, 0, false},
 		{65, 0, 1, false},
-		{65, 1, 0, true},
+		{65, 1, 0, false},
 		{65, 1, 1, false},
 
 		{0, 0, -64, true},

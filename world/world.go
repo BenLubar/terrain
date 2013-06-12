@@ -33,21 +33,18 @@ func (w *World) Get(x, y, z *big.Int) bool {
 		return c.Get(lx, ly, lz)
 	}
 
-	return z.Cmp(zero) <= 0
+	return z.Cmp(zero) < 0
 }
 
 var zero = big.NewInt(0)
-var bottomSolid [64][64]uint64
 var allSolid [64][64]uint64
 
 func init() {
 	for i := 0; i < 64; i++ {
 		allSolid[0][i] = ^uint64(0)
-		bottomSolid[0][i] = uint64(1)
 	}
 	for i := 1; i < 64; i++ {
 		allSolid[i] = allSolid[0]
-		bottomSolid[i] = bottomSolid[0]
 	}
 }
 
@@ -59,10 +56,7 @@ func (w *World) Chunk(x, y, z *big.Int) *chunk.Chunk {
 	}
 
 	c = chunk.New(x, y, z)
-	switch z.Cmp(zero) {
-	case 0:
-		c.Solid = bottomSolid
-	case -1:
+	if z.Cmp(zero) < 0 {
 		c.Solid = allSolid
 	}
 
